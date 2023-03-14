@@ -22,5 +22,26 @@ namespace ContosoPizza.Controllers
             
            return  pizza;
         }
+        [HttpPost]
+        public ActionResult<Pizza> Post(Pizza pizza)
+        {
+             PizzaService.Add(pizza);
+
+            return pizza;
+        }
+
+        [HttpPut("{id}")]
+        public ActionResult<Pizza> Put(int id, Pizza pizza)
+        {
+            PizzaService.Update(pizza);
+            return pizza;
+        }
+
+        [HttpDelete("{id}")]
+        public ActionResult Delete(int id)
+        {
+            PizzaService.Delete(id);
+            return Ok();
+        }
     }
 }
