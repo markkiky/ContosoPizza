@@ -23,7 +23,7 @@ public static class SeedData
                 new Company
                 {
                     Name = "Deja Vu",
-                    erp = "Zoho", 
+                    erp = "Zoho",
                     LedgerId = "761713361",
                     IsActive = true,
                     MultiCurrency = true,
@@ -48,7 +48,7 @@ public static class SeedData
                     FullUpdate = true,
                 },
                 new Company
-                { 
+                {
                     Name = "Sandbox",
                     erp = "QuickBooksOnlineSandbox",
                     LedgerId = "4620816365244119680",
@@ -57,7 +57,16 @@ public static class SeedData
                     FullUpdate = false,
                 }
             );
+            
+            context.Contact.AddRange(
+                new Contact
+                {
+                    Name = "Mark Kariuki",
+                    CompanyId = 1,
+                }
+            );
             context.SaveChanges();
+
         }
     }
 }

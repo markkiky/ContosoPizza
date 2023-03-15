@@ -17,6 +17,8 @@ namespace ContosoPizza.Models
 
         public bool FullUpdate { get; set; }
 
+        public virtual ICollection<Contact>? Contacts { get; set; }
+
         public DateTime? SyncDate { get; set; }
 
         public DateTime? CreatedDate { get; set; } = DateTime.Now;

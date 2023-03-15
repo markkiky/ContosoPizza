@@ -15,5 +15,16 @@ namespace ContosoPizza.Data
         }
 
         public DbSet<ContosoPizza.Models.Company> Company { get; set; } = default!;
+
+        public DbSet<ContosoPizza.Models.Contact> Contact { get; set; } = default!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Company>()
+                .HasMany(c => c.Contacts);
+
+            modelBuilder.Entity<Contact>()
+                .HasOne(c => c.Company);
+        }
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ContosoPizza.Data;
 using ContosoPizza.Models;
+using ContosoPizza.Services.Zoho;
 
 namespace ContosoPizza.Controllers
 {
@@ -21,6 +22,13 @@ namespace ContosoPizza.Controllers
             _context = context;
         }
 
+        [HttpGet("{id}/authenticate")]
+        public ActionResult<string> AuthorizationUrl()
+        {
+            OauthClient client = new OauthClient();
+            return client.AuthenticationUrl("https://dev.ledger.nashglobal.co/clients/nash/authenticate/callback");
+        }
+
         // GET: api/Companies
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Company>>> GetCompany()
@@ -29,7 +37,7 @@ namespace ContosoPizza.Controllers
           {
               return NotFound();
           }
-            return await _context.Company.ToListAsync();
+            return await _context.Company.Include(c => c.Contacts).ToListAsync();
         }
 
         // GET: api/Companies/5
