@@ -5,7 +5,7 @@ using ContosoPizza.Models;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using NuGet.Packaging;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ContosoPizzaContext>(options =>
@@ -22,19 +22,19 @@ builder.Services.AddControllers()
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication("Cookies")
+    .AddCookie()
+.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
-    options.DefaultScheme = "http";
-})
-    .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
-    {
-        options.Authority = "https://accounts.zoho.com/";
-        options.ClientId = "1000.SY4COZVK72MVM83ZZZJZ4DAU8HGHZF";
-        options.ClientSecret = "d61f96400fe7fee9c9d85d013a7718842a8a9cf78a";
-        options.ResponseType = OpenIdConnectResponseType.Code;
-        options.SaveTokens = true;
-        options.Scope.Add("ZohoBooks.fullaccess.all");
-    });
+    options.Authority = "https://accounts.google.com";
+    options.ClientId = "325233773683-etk0p3gv1glrnfghhhes2vvhev5msksm.apps.googleusercontent.com";
+    options.ClientSecret = "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";
+    options.CallbackPath = "/LoginCallback";
+    options.ResponseType = "code";
+    options.SaveTokens = true;
+    options.Scope.Add("openid");
+    options.Scope.Add("profile");
+});
 
 var app = builder.Build();
 
