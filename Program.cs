@@ -28,6 +28,17 @@ builder.Services.AddSwaggerGen();
 /* DI Authentication */
 builder.Services.AddAuthentication("cookie")
     .AddCookie("cookie")
+    .AddOAuth("github", options =>
+    {
+        options.SignInScheme = "cookie";
+        options.ClientId = "1075a54aa8c782584bf0";
+        options.ClientSecret = "d3f5a890e895e7a155a427dca547e40febbc74c5";
+        options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
+        options.TokenEndpoint = "https://github.com/login/oauth/access_token";
+        options.CallbackPath = "/oauth/github/callback";
+        
+        //options.UserInformationEndpoint = "https://api.github.com/user";
+    })
     .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
     {
         options.Authority = "https://accounts.google.com";

@@ -67,6 +67,25 @@ namespace ContosoPizza.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet("/login/oauth/github")]
+        public IResult GithubLogin()
+        {
+            return Results.Challenge(
+                new AuthenticationProperties()
+                { 
+                    RedirectUri = "http://localhost:5297"
+                },
+                authenticationSchemes: new List<string>() { "github" });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("/oauth/github/callback")]
+        public ActionResult GithubLoginCallback()
+        {
+            return Ok();
+        }
+
+        [AllowAnonymous]
         [HttpPost("/LoginCallback")]
         public async Task<IActionResult> LoginCallback()
         {
