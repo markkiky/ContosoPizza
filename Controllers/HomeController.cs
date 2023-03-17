@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using ContosoPizza.Services;
+using Hangfire;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +13,13 @@ namespace ContosoPizza.Controllers
     {
         private readonly IHttpContextAccessor? _contextAccessor;
         private readonly HttpContext? _httpContext;
+        private readonly IBackgroundJobClient _backgroundJobClient;
 
-        public HomeController(IHttpContextAccessor httpContext)
+        public HomeController(IHttpContextAccessor httpContext, IBackgroundJobClient backgroundJobClient)
         {
             _contextAccessor = httpContext;
             _httpContext = _contextAccessor.HttpContext;
-
+            _backgroundJobClient = backgroundJobClient;
         }
 
 
@@ -50,6 +53,8 @@ namespace ContosoPizza.Controllers
         [HttpGet("/username")]
         public ActionResult Username()
         {
+            HangfireTest job = new HangfireTest(_backgroundJobClient);
+            job.Print();
             var user = _contextAccessor.HttpContext.User;
             return Ok(user.Claims.ToList());
         }
@@ -91,11 +96,28 @@ namespace ContosoPizza.Controllers
                 authenticationSchemes: new List<string>() { "google" });
         }
 
-
-
         [AllowAnonymous]
         [HttpPost("/oauth/google/callback")]
         public ActionResult GoogleLoginCallback()
+        {
+            return Ok();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("/login/oauth/zoho")]
+        public IResult ZohoLogin()
+        {
+            return Results.Challenge(
+                new AuthenticationProperties()
+                {
+                    RedirectUri = "https://localhost:3000/username"
+                },
+                authenticationSchemes: new List<string>() { "zoho" });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("/oauth/zoho/callback")]
+        public ActionResult ZohoLoginCallback()
         {
             return Ok();
         }

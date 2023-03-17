@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
+using Hangfire;
+using ContosoPizza.Models.Zoho;
 
 /* Use Builder */
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +54,50 @@ builder.Services.AddAuthentication("cookie")
             context.RunClaimActions(user);
         };
     })
+    .AddOAuth("zoho", options =>
+    {
+        options.SignInScheme = "cookie";
+        options.ClientId = "1000.SY4COZVK72MVM83ZZZJZ4DAU8HGHZF";
+        options.ClientSecret = "d61f96400fe7fee9c9d85d013a7718842a8a9cf78a";
+        options.AuthorizationEndpoint = "https://accounts.zoho.com/oauth/v2/auth";
+        options.TokenEndpoint = "https://accounts.zoho.com/oauth/v2/token";
+        options.CallbackPath = "/oauth/zoho/callback";
+        options.SaveTokens = true;
+        options.UserInformationEndpoint = "https://www.zohoapis.com/books/v3/organizations";
+        options.Scope.Add("ZohoBooks.fullaccess.all");
+        options.Scope.Add("ZohoInventory.fullaccess.all");
+        options.Scope.Add("zohobackstage.order.read");
+        options.Scope.Add("zohobackstage.order.UPDATE");
+        options.Scope.Add("zohobackstage.attendee.read");
+        options.Scope.Add("zohobackstage.event.read");
+        options.Scope.Add("zohobackstage.portal.read");
+        options.Scope.Add("zohobackstage.paymentoption.read");
+        options.Scope.Add("zohobackstage.eventticket.READ");
+        options.Events.OnCreatingTicket = async context =>
+        {
+            var database = context.HttpContext.RequestServices.GetRequiredService<ContosoPizzaContext>();
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", context.AccessToken);
+
+            var result = await context.Backchannel.SendAsync(request);
+            var content = await result.Content.ReadAsStringAsync();
+
+            var companyJson = JsonDocument.Parse(content).RootElement;
+
+           
+            var companies = companyJson.GetProperty("organizations");
+
+           
+
+            List<Organization> orgs = new List<Organization>()
+            {
+
+            };
+
+
+        };
+    })
     .AddOpenIdConnect("google", options =>
     {
         options.Authority = "https://accounts.google.com";
@@ -64,6 +110,7 @@ builder.Services.AddAuthentication("cookie")
         options.Scope.Add("profile");
     });
 
+/* Configure Cookie Authorization */
 builder.Services.AddAuthorization(builder =>
 {
     builder.AddPolicy("eu passport", policyBuilder =>
@@ -73,6 +120,22 @@ builder.Services.AddAuthorization(builder =>
         .RequireClaim("passport_type", "eu");
     });
 });
+
+/* Hangfire */
+builder.Services.AddHangfire(config => config
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("ContosoPizzaContext"), new Hangfire.SqlServer.SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true,
+    }
+    ));
+
+builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -97,6 +160,9 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 /* Use Authorization Middleware */
 app.UseAuthorization();
+
+app.UseHangfireDashboard();
+
 
 /* Use Controllers Middleware */
 app.MapControllers();
