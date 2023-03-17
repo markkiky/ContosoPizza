@@ -2,6 +2,9 @@
 using ContosoPizza.Data;
 using ContosoPizza.Models;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 /* Use Builder */
 var builder = WebApplication.CreateBuilder(args);
@@ -36,15 +39,25 @@ builder.Services.AddAuthentication("cookie")
         options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
         options.TokenEndpoint = "https://github.com/login/oauth/access_token";
         options.CallbackPath = "/oauth/github/callback";
-        
-        //options.UserInformationEndpoint = "https://api.github.com/user";
+        options.SaveTokens = true;
+        options.UserInformationEndpoint = "https://api.github.com/user";
+        options.ClaimActions.MapJsonKey("sub", "id");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Name, "login");
+        options.Events.OnCreatingTicket = async context =>
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", context.AccessToken);
+            var result = await context.Backchannel.SendAsync(request);
+            var user = await result.Content.ReadFromJsonAsync<JsonElement>();
+            context.RunClaimActions(user);
+        };
     })
-    .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+    .AddOpenIdConnect("google", options =>
     {
         options.Authority = "https://accounts.google.com";
         options.ClientId = "325233773683-etk0p3gv1glrnfghhhes2vvhev5msksm.apps.googleusercontent.com";
         options.ClientSecret = "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";
-        options.CallbackPath = "/LoginCallback";
+        options.CallbackPath = "/oauth/google/callback";
         options.ResponseType = "code";
         options.SaveTokens = true;
         options.Scope.Add("openid");

@@ -19,12 +19,7 @@ namespace ContosoPizza.Controllers
 
         }
 
-        [HttpGet]
-        [Authorize(AuthenticationSchemes = OpenIdConnectDefaults.AuthenticationScheme)]
-        public ActionResult Get()
-        {
-            return Ok();
-        }
+
 
         [AllowAnonymous]
         [HttpGet("/login/sweden")]
@@ -56,7 +51,7 @@ namespace ContosoPizza.Controllers
         public ActionResult Username()
         {
             var user = _contextAccessor.HttpContext.User;
-            return Ok(user.FindFirst("usr").Value);
+            return Ok(user.Claims.ToList());
         }
 
         [Authorize("eu passport")]
@@ -72,8 +67,8 @@ namespace ContosoPizza.Controllers
         {
             return Results.Challenge(
                 new AuthenticationProperties()
-                { 
-                    RedirectUri = "http://localhost:5297"
+                {
+                    RedirectUri = "https://localhost:3000/username"
                 },
                 authenticationSchemes: new List<string>() { "github" });
         }
@@ -85,18 +80,23 @@ namespace ContosoPizza.Controllers
             return Ok();
         }
 
-        [AllowAnonymous]
-        [HttpPost("/LoginCallback")]
-        public async Task<IActionResult> LoginCallback()
+        [HttpGet("/login/oauth/google")]
+        public IResult GoogleLogin()
         {
-            var result = await HttpContext.AuthenticateAsync(OpenIdConnectDefaults.AuthenticationScheme);
-            if (!result.Succeeded)
-            {
-                // handle authentication failure
-            }
+            return Results.Challenge(
+                new AuthenticationProperties()
+                {
+                    RedirectUri = "https://localhost:3000/username"
+                },
+                authenticationSchemes: new List<string>() { "google" });
+        }
 
-            // handle authentication success
 
+
+        [AllowAnonymous]
+        [HttpPost("/oauth/google/callback")]
+        public ActionResult GoogleLoginCallback()
+        {
             return Ok();
         }
     }
