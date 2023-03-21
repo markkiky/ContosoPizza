@@ -18,12 +18,28 @@ namespace ContosoPizza.Data
 
         public DbSet<ContosoPizza.Models.Contact> Contact { get; set; } = default!;
 
+        public DbSet<Token> Token { get; set; } = default!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Company>()
-                .HasMany(c => c.Contacts);
+                .HasMany(c => c.Contacts)
+                .WithOne(c => c.Company)
+                .HasForeignKey(c => c.CompanyId);
 
+
+            modelBuilder.Entity<Company>()
+                .HasMany(c => c.Tokens)
+                .WithOne(c => c.Company)
+                .HasForeignKey(c => c.CompanyId);
+
+            modelBuilder.Entity<Token>()
+                .HasOne(c => c.Company);
+                
             modelBuilder.Entity<Contact>()
+                .HasOne(c => c.Company);
+
+            modelBuilder.Entity<Token>()
                 .HasOne(c => c.Company);
         }
     }

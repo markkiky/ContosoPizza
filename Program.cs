@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using Hangfire;
 using ContosoPizza.Models.Zoho;
+using System.Security.AccessControl;
+using Newtonsoft.Json;
 
 /* Use Builder */
 var builder = WebApplication.CreateBuilder(args);
@@ -56,14 +58,14 @@ builder.Services.AddAuthentication("cookie")
     })
     .AddOAuth("zoho", options =>
     {
-        options.SignInScheme = "cookie";
         options.ClientId = "1000.SY4COZVK72MVM83ZZZJZ4DAU8HGHZF";
         options.ClientSecret = "d61f96400fe7fee9c9d85d013a7718842a8a9cf78a";
-        options.AuthorizationEndpoint = "https://accounts.zoho.com/oauth/v2/auth";
+        options.AuthorizationEndpoint = "https://accounts.zoho.com/oauth/v2/auth?access_type=offline&prompt=Consent";
         options.TokenEndpoint = "https://accounts.zoho.com/oauth/v2/token";
         options.CallbackPath = "/oauth/zoho/callback";
         options.SaveTokens = true;
         options.UserInformationEndpoint = "https://www.zohoapis.com/books/v3/organizations";
+        options.AccessDeniedPath = "";
         options.Scope.Add("ZohoBooks.fullaccess.all");
         options.Scope.Add("ZohoInventory.fullaccess.all");
         options.Scope.Add("zohobackstage.order.read");
@@ -81,20 +83,93 @@ builder.Services.AddAuthentication("cookie")
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", context.AccessToken);
 
             var result = await context.Backchannel.SendAsync(request);
+
+
             var content = await result.Content.ReadAsStringAsync();
 
             var companyJson = JsonDocument.Parse(content).RootElement;
+            //var companyJson = JsonConvert.DeserializeObject(content);
 
-           
-            var companies = companyJson.GetProperty("organizations");
 
-           
+            var companies = JsonConvert.DeserializeObject<List<Organization>>(companyJson.GetProperty("organizations").ToString());
 
-            List<Organization> orgs = new List<Organization>()
+            foreach (var company in companies)
             {
+                var existing_company = database.Company.Where(comp => comp.LedgerId == company.organization_id).SingleOrDefault();
 
-            };
+                if (existing_company != null)
+                {
+                    var access_token = database.Token.SingleOrDefault(comp => comp.Type == "AccessToken" && comp.CompanyId == existing_company.Id);
+                    if (access_token != null)
+                    {
+                        access_token.Name = context.AccessToken;
+                        access_token.ExpiryDate = DateTime.UtcNow.AddSeconds(int.Parse(context.TokenResponse.ExpiresIn));
+                    }
+                    else
+                    {
+                        Token token = new Token
+                        {
+                            Name = context.AccessToken,
+                            ExpiryDate = DateTime.UtcNow.AddSeconds(int.Parse(context.TokenResponse.ExpiresIn)),
+                            CompanyId = existing_company.Id,
+                            Type = "AccessToken"
+                        };
+                        database.Token.Add(token);
+                    }
 
+                    var refresh_token = database.Token.SingleOrDefault(comp => comp.Type == "RefreshToken" && comp.CompanyId == existing_company.Id);
+                    if (refresh_token != null)
+                    {
+                        refresh_token.Name = context.AccessToken;
+                    }
+                    else
+                    {
+                        Token token = new Token
+                        {
+                            Type = "RefreshToken",
+                            Name = context.RefreshToken,
+                            CompanyId = existing_company.Id
+                        };
+
+                        database.Token.Add(token);
+
+                    }
+
+                    database.SaveChanges();
+                }
+                else
+                {
+                    Company new_company = new()
+                    {
+                        Name = company.name,
+                        LedgerId = company.organization_id
+                    };
+
+                    database.Company.Add(new_company);
+                    database.SaveChanges();
+
+                    var saved_company = database.Company.SingleOrDefault(c => c.LedgerId == company.organization_id);
+
+                    Token access_token = new()
+                    {
+                        Name = context.AccessToken,
+                        ExpiryDate = DateTime.UtcNow.AddSeconds(int.Parse(context.TokenResponse.ExpiresIn)),
+                        CompanyId = saved_company.Id,
+                        Type = "AccessToken"
+                    };
+
+                    Token refresh_token = new()
+                    {
+                        Name = context.AccessToken,
+                        CompanyId = saved_company.Id,
+                        Type = "RefreshToken"
+                    };
+
+                    database.Token.Add(refresh_token); database.SaveChanges();
+                    database.Token.Add(access_token); database.SaveChanges();
+                }
+
+            }
 
         };
     })

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using NuGet.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace ContosoPizza.Models
 {
@@ -18,6 +19,8 @@ namespace ContosoPizza.Models
         public bool FullUpdate { get; set; }
 
         public virtual ICollection<Contact>? Contacts { get; set; }
+
+        public virtual ICollection<Token>? Tokens { get; set; }
 
         public DateTime? SyncDate { get; set; }
 

@@ -37,7 +37,7 @@ namespace ContosoPizza.Controllers
           {
               return NotFound();
           }
-            return await _context.Company.Include(c => c.Contacts).ToListAsync();
+            return await _context.Company.Include(c => c.Contacts).Include(c => c.Tokens).ToListAsync();
         }
 
         // GET: api/Companies/5
